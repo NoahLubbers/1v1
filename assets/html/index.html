@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>1v1.LOL | Building Simulator, Battle Royale & Shooting Game</title>
+    <script src="/assets/js/jquery-3.6.0.js"></script>
+    <script src="/assets/js/IronSourceRV.js"></script>
+    <script src="/assets/js/fullscreen.js"></script>
+    <script>
+      var gameLoaded = false;
+      window.addEventListener("beforeunload", function (e) {
+        if (adsVisible || !gameLoaded || !lockedOccured)
+          return null;
+        var confirmationMessage = 'Are you sure you want to leave? ';
+        (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+        return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
+      });
+      window.alert = function(e) {console.log(e)};
+    </script>
+    <link rel='shortcut icon' type="image/png" href="/assets/img/favicon.png" />
+    
+    <link rel="canonical" href="https://1v1.lol/" />
+    <meta property="og:title" content="1v1.LOL" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://1v1.lol/" />
+    <meta property="og:image" content="https://1v1.lol/splash.jpg" />
+    <meta property="og:description" content="Discover 1v1, the online building simulator & third person shooting game. Battle royale, build fight, box fight, zone wars and more game modes to enjoy!">
+    
+    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description"
+      content="Discover 1v1, the online building simulator & third person shooting game. Battle royale, build fight, box fight, zone wars and more game modes to enjoy!">
+    <meta name="keywords" content="just,build,simulator,practice,free,online,battle,royale">
+    <script type="text/javascript" src="//imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+  
+    <!-- ZONETAG - PLACE INTO HEAD SECTION OR RUN CODE AT STARTUP -->
+    <script>
+    (function(zonefile) { 
+    var y=window.location.href.split('#')[0].split('').reduce(function(a,b){return(a<<5)-a+b.charCodeAt(0)>>>1},0);y=(10+((y*7)%26)).toString(36)+y.toString(36);
+    var drutObj = window[y] = window[y] || {};
+    function failCpmstarAPI() { var failFn = function(o) { o && typeof(o) === "object" && o.fail && o.fail(); }; drutObj && Array.isArray(drutObj.cmd) && drutObj.cmd.forEach(failFn) && (drutObj.cmd.length = 0);  window.cpmstarAPI = window["_"+zonefile] = failFn; }
+    var rnd = Math.round(Math.random()*999999);
+    var s = document.createElement('script'); s.type = 'text/javascript'; s.async = true; s.onerror=failCpmstarAPI;
+    var proto = document.location.protocol;
+    var host = ( proto == "https:" || proto == "file:")?"https://server":"//cdn";
+    if(window.location.hash=="#cpmstarDev") host = "//dev.server";
+    if(window.location.hash=="#cpmstarStaging") host = "//staging.server"; 
+    s.src = host + ".cpmstar.com/cached/zonefiles/" + zonefile + ".js?rnd="+rnd; 
+    var s2=document.getElementsByTagName('script')[0];
+    s2.parentNode.insertBefore(s, s2);
+    window.cpmstarAPI = function(o) { (drutObj.cmd = drutObj.cmd || []).push(o); }
+    }('372_49986_1v1'));
+    Object.defineProperty(window.performance.__proto__,"measures",Object.getOwnPropertyDescriptor(window.performance.__proto__,"now")),delete window.performance.__proto__.now,window.performance.__proto__.now={},Object.defineProperty(window.performance.__proto__,"now",{get:function(){return this.measures}}),Object.defineProperty(window.performance.__proto__,"now",{set:function(){Object.defineProperty(window.performance.__proto__,"now",{get:function(){return function(){return this.measures()/2}}})}});
+    </script>
+    <!-- MIDROLL/INTERSTITIAL VIDEO API -->
+    <script src="js/cpmstar.js"></script>
+  </head>
+  <body>
+
+  <div id="gameContainer">
+	<canvas id="canvas"></canvas>
+    <div id="loader">
+      <img class="logo" src="logo.png">
+      <div class="spinner"></div>
+      <div id="unity-progress-bar-empty" style="display: none;">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+      <div id="percentDiv" style="color: white;"></div>
+    </div>
+  </div>	
+
+    <script>
+	  var hostname = window.location.hostname;
+	  if(hostname.indexOf("dev1v1") >= 0 || hostname.indexOf("dev.1v1") >= 0 || hostname.indexOf("test1v1") >= 0 || hostname.indexOf("test.1v1") >= 0) {
+		let urlParams = new URLSearchParams(window.location.search);
+		let queryParam = urlParams.get('version');
+
+      var loaderUrl = "/assets/js/WebGL.loader.js";
+
+      var config = {
+        dataUrl: "/assets/webgl/WebGL.data.unityweb",
+        frameworkUrl: "/assets/webgl/WebGL.framework.js.unityweb",
+        codeUrl: "/assets/webgl/WebGL.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "JustPlay.LOL",
+        productName: "1v1.LOL",
+        productVersion: "4.13",
+      };
+
+      var container = document.querySelector("#gameContainer");
+      var canvas = document.querySelector("#canvas");
+      var loadingBar = document.querySelector("#loader");
+      var spinner = loadingBar.querySelector(".spinner")
+      var progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
+      var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      var mobileWarning = document.querySelector("#unity-mobile-warning");
+
+      // By default Unity keeps WebGL canvas render target size matched with
+      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+      // Set this to false if you want to decouple this synchronization from
+      // happening inside the engine, and you would instead like to size up
+      // the canvas DOM size and WebGL render target sizes yourself.
+      // config.matchWebGLToCanvasSize = false;
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        container.className = "unity-mobile";
+        // Avoid draining fillrate performance on mobile devices,
+        // and default/override low DPI mode on mobile browsers.
+        config.devicePixelRatio = 1;
+        mobileWarning.style.display = "block";
+        setTimeout(() => {
+          mobileWarning.style.display = "none";
+        }, 5000);
+      }
+
+      let gameInstance;
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          spinner.style.display = "none"
+          progressBarEmpty.style.display = "";
+          progressBarFull.style.width = `${100 * progress}%`;
+        }).then((unityInstance) => {
+          loadingBar.style.display = "none";
+          window.unityInstance = unityInstance;
+          gameInstance = unityInstance;
+          window.gameInstance = unityInstance;
+        }).catch((message) => {
+          alert(message);
+        });
+      };
+      document.body.appendChild(script);
+
+      document.onkeydown = function (e) {
+			if (e.altKey || e.ctrlKey || e.key == "F1" || e.key == "F2" || e.key == "F3" || e.key == "F4") {
+				e.preventDefault();
+			}
+		}
+
+		document.onmouseup = function (e) {
+			e.preventDefault();
+		}
+
+		document.addEventListener('pointerlockchange', lockChangeAlert, false);
+		document.addEventListener('mozpointerlockchange', lockChangeAlert, false);
+    
+    let lockedOccured = false;
+		function lockChangeAlert() {
+			if (!lockedOccured && document.pointerLockElement)
+				lockedOccured = true;
+			if (!document.pointerLockElement && lockedOccured){
+				lockedOccured = false;
+				window.unityInstance.SendMessage("Pause Menu", "OnCursorUnlocked");
+			}
+		}
+		
+		
+
+
+
+	</script>
+
+	<script src="/assets/js/windowResize.js"></script>
+	<script src="/assets/js/macUserAgent.js"></script>
+	<script src="/assets/js/visibilityChangeListener.js"></script>
+	<script>
+    var onUnityReady = sendConfig;
+    /*
+		function onUnityReady() {
+			sendConfig();
+		}
+		*/
+		fixMacUserAgent();
+	</script>
+  </body>
+</html>
